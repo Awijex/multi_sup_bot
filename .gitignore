@@ -106,5 +106,6 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-#token
+#bot
 token
+url
