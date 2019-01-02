@@ -1,8 +1,7 @@
 import telebot
 from flask import Flask, request
 from flask_sslify import SSLify
-from core import data
-
+import data
 
 APP = Flask(__name__)
 
