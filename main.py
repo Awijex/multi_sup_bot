@@ -1,5 +1,9 @@
+import telebot
+import flask
+
+
 def main():
-    print('test')
+    bot = telebot.TeleBot(token=)
 
 
 if __name__ == '__main__':
