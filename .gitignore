@@ -109,3 +109,4 @@ venv.bak/
 #bot
 token
 url
+database.sqlite

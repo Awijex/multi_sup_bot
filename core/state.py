@@ -1,0 +1,3 @@
+states = {
+    '/start': ('/start', 'Погода')
+}

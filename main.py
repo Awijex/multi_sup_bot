@@ -1,11 +1,18 @@
 from flask import Flask, request
 from flask_sslify import SSLify
 from core.structure import check_structure
+from core.models import create_database
 check_structure()
 from core import data
+from core.state import states
 import telebot
 
 APP = Flask(__name__)
+DB, User = create_database(APP)
+
+
+def check_state(message):
+    pass
 
 
 def create_bot():
@@ -26,15 +33,19 @@ def create_webhook():
 
 @BOT.message_handler(commands=['start'])
 def start(message):
-    keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    if not User.query.filter_by(user_id=message.chat.id).first():
+        user = User(message.chat.id, message.text)
+        DB.session.add(user)
+        DB.session.commit()
+        BOT.send_message(message.chat.id, 'Hello, ' + message.chat.first_name)
+    keyboard = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     weather_button = telebot.types.KeyboardButton(text='Погода')
     keyboard.add(weather_button)
-    BOT.send_message(message.chat.id, text='Выбери что-нибудь', reply_markup=keyboard)
+    BOT.send_message(message.chat.id, 'Вот что я могу:', reply_markup=keyboard)
 
 
 @BOT.message_handler(content_types=['text'])
 def text(message):
-    BOT.send_message(message.chat.id, message.text)
     print(message.text)
 
 
