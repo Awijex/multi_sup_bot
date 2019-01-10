@@ -34,6 +34,7 @@ BOT = create_bot()
 
 @APP.route('/' + data.TOKEN, methods=['POST'])
 def create_webhook():
+    BOT.send_message('309167531', '/' + data.TOKEN + ' 11111111')
     BOT.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode('utf-8'))])
     return 'ok', 200
 
