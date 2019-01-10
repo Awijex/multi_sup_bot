@@ -4,7 +4,7 @@ import os
 def check_structure():
     files = ('token', 'url', 'weather_api_key')
     for file in files:
-        if not os.path.exists(os.path.join(os.path.abspath('core'), file)):
+        if not os.path.exists(file):
             open(file, 'w')
 
 
