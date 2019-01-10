@@ -29,11 +29,6 @@ def create_bot():
     return bot
 
 
-@APP.route('/')
-def ping():
-    return 'ok'
-
-
 BOT = create_bot()
 
 
@@ -41,6 +36,11 @@ BOT = create_bot()
 def create_webhook():
     BOT.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode('utf-8'))])
     return 'ok', 200
+
+
+@APP.route('/')
+def ping():
+    return 'ok'
 
 
 def create_buttons():
