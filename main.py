@@ -25,7 +25,7 @@ def check_state(message):
 def create_bot():
     bot = telebot.TeleBot(token=data.TOKEN)
     bot.remove_webhook()
-    bot.set_webhook(url=data.URL + '/' + data.TOKEN)
+    bot.set_webhook(url='/'.join((data.URL, data.TOKEN)))
     return bot
 
 
@@ -120,6 +120,7 @@ class Weather:
 
 @BOT.message_handler(content_types=['text'])
 def text(message):
+    BOT.send_message(message.chat.id, message.text)
     print(message.text)
 
 
