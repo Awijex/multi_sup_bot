@@ -32,9 +32,9 @@ def create_buttons():
     KEYBOARDS['/start'] = {'keyboard': keyboard, 'text': 'Вот что я могу:'}
 
     keyboard = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    coords_button = telebot.types.KeyboardButton(text='По координатам', request_location=True)
-    back = telebot.types.KeyboardButton(text='Назад')
-    keyboard.add(coords_button, back)
+    coordinates_button = telebot.types.KeyboardButton(text='По координатам', request_location=True)
+    back_button = telebot.types.KeyboardButton(text='Назад')
+    keyboard.add(coordinates_button, back_button)
 
     KEYBOARDS['Погода'] = {'keyboard': keyboard, 'text': 'Погода:'}
 
@@ -55,7 +55,7 @@ def get_route():
 
 
 @APP.route('/' + data.TOKEN, methods=["POST"])
-def webhook():
+def update_messages():
     BOT.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
     return "ok", 200
 
@@ -80,14 +80,14 @@ class Weather:
 
     @staticmethod
     def get_weather_by_location(location):
-        respose = json.loads(requests.get(
+        response = json.loads(requests.get(
             f'https://api.openweathermap.org/data/2.5/weather?lat={location.latitude}&lon={location.longitude}'
             f'&APPID={data.WEATHER_API_KEY}&units=metric'
         ).text)
-        weather = {'temp': respose['main']['temp'],
-                    'wind': respose['wind']['speed'],
-                    'clouds': respose['clouds']['all']
-                    }
+        weather = {'temp': response['main']['temp'],
+                   'wind': response['wind']['speed'],
+                   'clouds': response['clouds']['all']
+                   }
         return weather
 
     @staticmethod
@@ -101,7 +101,7 @@ class Weather:
 
     @staticmethod
     @BOT.message_handler(content_types=['location'])
-    def coords(message):
+    def coordinates(message):
         user = User.query.filter_by(user_id=message.chat.id).first()
         if user.state == 'Погода':
             weather = Weather.get_weather_by_location(message.location)
