@@ -29,12 +29,12 @@ def create_bot():
     return bot
 
 
-BOT = create_bot()
-
-
 @APP.route('/')
 def ping():
     return 'ok'
+
+
+BOT = create_bot()
 
 
 @APP.route('/' + data.TOKEN, methods=['POST'])
