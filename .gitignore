@@ -110,3 +110,4 @@ venv.bak/
 token
 url
 database.sqlite
+weather_api_key

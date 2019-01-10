@@ -2,7 +2,11 @@ import os
 
 
 def check_structure():
-    files = ('token', 'url')
+    files = ('token', 'url', 'weather_api_key')
     for file in files:
         if not os.path.exists(os.path.join(os.path.abspath('core'), file)):
             open(file, 'w')
+
+
+if __name__ == '__main__':
+    check_structure()

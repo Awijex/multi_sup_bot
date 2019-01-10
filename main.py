@@ -1,4 +1,6 @@
 import telebot
+import requests
+import json
 from flask import Flask, request
 from flask_sslify import SSLify
 from core.models import create_database
@@ -78,6 +80,19 @@ def back(message):
 
 
 class Weather:
+
+    @staticmethod
+    def get_weather_by_location(location):
+        respose = json.loads(requests.get(
+            f'https://api.openweathermap.org/data/2.5/weather?lat={location.latitude}&lon={location.longitude}'
+            f'&APPID={data.WEATHER_API_KEY}&units=metric'
+        ).text)
+        weather = {'temp': respose['main']['temp'],
+                   'wind': respose['wind']['speed'],
+                   'clouds': respose['clouds']['all']
+                   }
+        return weather
+
     @staticmethod
     @BOT.message_handler(regexp='Погода')
     def weather(message):
@@ -92,7 +107,10 @@ class Weather:
     def coords(message):
         user = User.query.filter_by(user_id=message.chat.id).first()
         if user.state == 'Погода':
-            print(message.location)
+            weather = Weather.get_weather_by_location(message.location)
+            BOT.send_message(message.chat.id, f'Темпаратура: {weather["temp"]}\n'
+                                              f'Ветер: {weather["wind"]}\n'
+                                              f'Облачность: {weather["clouds"]}\n')
 
 
 @BOT.message_handler(content_types=['text'])
