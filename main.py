@@ -1,6 +1,7 @@
 import telebot
 import requests
 import json
+import xmltodict
 from flask import Flask, request
 from flask_sslify import SSLify
 from core.models import create_database
@@ -132,6 +133,19 @@ class Rate:
         return '\n'.join(answer)
 
     @staticmethod
+    def get_russian_rate():
+        currencies = ('USD', 'EUR')
+        response = requests.get('http://www.cbr.ru/scripts/XML_daily.asp').text
+        response = xmltodict.parse(response)
+        response = {i['CharCode']: i for i in response['ValCurs']['Valute']}
+        answer = []
+        for i in currencies:
+            answer.append(' '.join((str(response[i]['Nominal']), i,
+                                    'стоит' if int(response[i]['Nominal']) == 1 else 'стоят',
+                                    str(response[i]['Value']), 'RUB')))
+        return '\n'.join(answer).replace(',', '.')
+
+    @staticmethod
     @BOT.message_handler(regexp='Курс валют')
     def moneys(message):
         if check_state(message):
@@ -146,7 +160,7 @@ class Rate:
         if message.text == 'Беларусь':
             BOT.send_message(message.chat.id, Rate.get_belarusian_rate())
         elif message.text == 'Россия':
-            BOT.send_message(message.chat.id, 'Функция в процессе разработки')
+            BOT.send_message(message.chat.id, Rate.get_russian_rate())
 
 
 @BOT.message_handler(regexp='Назад')
