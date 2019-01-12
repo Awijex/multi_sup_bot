@@ -126,9 +126,9 @@ class Rate:
         response = {i['Cur_Abbreviation']: i for i in response}
         answer = []
         for i in currencies:
-            answer.append(' '.join((str(response[i]['Cur_Scale']), response[i]['Cur_Name'],
+            answer.append(' '.join((str(response[i]['Cur_Scale']), i,
                           'стоит' if response[i]['Cur_Scale'] == 1 else 'стоят', str(response[i]['Cur_OfficialRate']),
-                                   'Белорусских рублей')))
+                                   'BYN')))
         return '\n'.join(answer)
 
     @staticmethod
