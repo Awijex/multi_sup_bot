@@ -25,18 +25,24 @@ def check_state(message):
 
 
 def create_buttons():
-    keyboard = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    weather_button = telebot.types.KeyboardButton(text='Погода')
-    keyboard.add(weather_button)
+    keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    buttons = (telebot.types.KeyboardButton(text='{}'.format(i)) for i in ('Погода', 'Курс валют'))
+    keyboard.add(*buttons)
 
     KEYBOARDS['/start'] = {'keyboard': keyboard, 'text': 'Вот что я могу:'}
 
-    keyboard = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     coordinates_button = telebot.types.KeyboardButton(text='По координатам', request_location=True)
     back_button = telebot.types.KeyboardButton(text='Назад')
     keyboard.add(coordinates_button, back_button)
 
     KEYBOARDS['Погода'] = {'keyboard': keyboard, 'text': 'Погода:'}
+
+    keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    buttons = (telebot.types.KeyboardButton(text='{}'.format(i)) for i in ('Россия', 'Беларусь', 'Назад'))
+    keyboard.add(*buttons)
+
+    KEYBOARDS['Курс валют'] = {'keyboard': keyboard, 'text': 'Выбери страну:'}
 
 
 def create_bot():
@@ -108,6 +114,39 @@ class Weather:
             BOT.send_message(message.chat.id, f'Темпаратура: {weather["temp"]}\n'
                                               f'Ветер: {weather["wind"]}\n'
                                               f'Облачность: {weather["clouds"]}\n')
+
+
+class Rate:
+
+    @staticmethod
+    def get_belarusian_rate():
+        currencies = ('USD', 'EUR', 'RUB')
+        response = requests.get('http://www.nbrb.by/API/ExRates/Rates?Periodicity=0').text
+        response = json.loads(response)
+        response = {i['Cur_Abbreviation']: i for i in response}
+        answer = []
+        for i in currencies:
+            answer.append(' '.join((str(response[i]['Cur_Scale']), response[i]['Cur_Name'],
+                          'стоит' if response[i]['Cur_Scale'] == 1 else 'стоят', str(response[i]['Cur_OfficialRate']),
+                                   'Белорусских рублей')))
+        return '\n'.join(answer)
+
+    @staticmethod
+    @BOT.message_handler(regexp='Курс валют')
+    def moneys(message):
+        if check_state(message):
+            BOT.send_message(message.chat.id, KEYBOARDS[message.text]['text'],
+                             reply_markup=KEYBOARDS[message.text]['keyboard'])
+        else:
+            BOT.send_message(message.chat.id, 'Неверная команда')
+
+    @staticmethod
+    @BOT.message_handler(regexp='Беларусь|Россия')
+    def route_country(message):
+        if message.text == 'Беларусь':
+            BOT.send_message(message.chat.id, Rate.get_belarusian_rate())
+        elif message.text == 'Россия':
+            BOT.send_message(message.chat.id, 'Функция в процессе разработки')
 
 
 @BOT.message_handler(regexp='Назад')
