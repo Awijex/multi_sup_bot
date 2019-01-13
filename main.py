@@ -1,6 +1,6 @@
+import json
 import telebot
 import requests
-import json
 import xmltodict
 from flask import Flask, request
 from flask_sslify import SSLify
@@ -11,18 +11,18 @@ from core.state import states
 APP = Flask(__name__)
 SSLify(APP)
 
-DB, User = create_database(APP)
+DB, USER = create_database(APP)
 KEYBOARDS = {}
 
 
 def check_state(message):
-    user = User.query.filter_by(user_id=message.chat.id).first()
+    user = USER.query.filter_by(user_id=message.chat.id).first()
     if message.text in states[user.state]:
         print(user.state)
         user.state = states[user.state][message.text]
         DB.session.commit()
         return True
-    return
+    return False
 
 
 def create_buttons():
@@ -69,13 +69,13 @@ def update_messages():
 
 @BOT.message_handler(commands=['start'])
 def start(message):
-    if not User.query.filter_by(user_id=message.chat.id).first():
-        user = User(message.chat.id, message.text)
+    if not USER.query.filter_by(user_id=message.chat.id).first():
+        user = USER(message.chat.id, message.text)
         DB.session.add(user)
         DB.session.commit()
         BOT.send_message(message.chat.id, 'Hello, ' + message.chat.first_name)
     else:
-        user = User.query.filter_by(user_id=message.chat.id).first()
+        user = USER.query.filter_by(user_id=message.chat.id).first()
         user.state = message.text
         DB.session.commit()
 
@@ -93,8 +93,8 @@ class Weather:
         ).text)
         weather = {'temp': response['main']['temp'],
                    'wind': response['wind']['speed'],
-                   'clouds': response['clouds']['all']
-                   }
+                   'clouds': response['clouds']['all'],
+                  }
         return weather
 
     @staticmethod
@@ -109,7 +109,7 @@ class Weather:
     @staticmethod
     @BOT.message_handler(content_types=['location'])
     def coordinates(message):
-        user = User.query.filter_by(user_id=message.chat.id).first()
+        user = USER.query.filter_by(user_id=message.chat.id).first()
         if user.state == 'Погода':
             weather = Weather.get_weather_by_location(message.location)
             BOT.send_message(message.chat.id, f'Темпаратура: {weather["temp"]}\n'
@@ -128,8 +128,8 @@ class Rate:
         answer = []
         for i in currencies:
             answer.append(' '.join((str(response[i]['Cur_Scale']), i,
-                          'стоит' if response[i]['Cur_Scale'] == 1 else 'стоят', str(response[i]['Cur_OfficialRate']),
-                                   'BYN')))
+                                    'стоит' if response[i]['Cur_Scale'] == 1 else 'стоят',
+                                    str(response[i]['Cur_OfficialRate']), 'BYN')))
         return '\n'.join(answer)
 
     @staticmethod
@@ -166,7 +166,7 @@ class Rate:
 @BOT.message_handler(regexp='Назад')
 def back(message):
     if check_state(message):
-        user = User.query.filter_by(user_id=message.chat.id).first()
+        user = USER.query.filter_by(user_id=message.chat.id).first()
         BOT.send_message(message.chat.id, KEYBOARDS[user.state]['text'],
                          reply_markup=KEYBOARDS[user.state]['keyboard'])
     else:
