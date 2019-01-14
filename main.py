@@ -98,6 +98,10 @@ class Weather:
         return weather
 
     @staticmethod
+    def get_weather_by_city(city):
+        pass
+
+    @staticmethod
     @BOT.message_handler(regexp='Погода')
     def weather(message):
         if check_state(message):
