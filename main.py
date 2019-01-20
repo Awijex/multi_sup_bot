@@ -19,7 +19,7 @@ def check_state(message):
     user = USER.query.filter_by(user_id=message.chat.id).first()
     if message.text in states[user.state]:
         print(user.state)
-        user.state = states[user.state][message.text]
+        user.state = states[user.state][message.text] if states[user.state][message.text] in states else user.state
         DB.session.commit()
         return True
     return False
@@ -44,6 +44,12 @@ def create_buttons():
     keyboard.add(*buttons)
 
     KEYBOARDS['Курс валют'] = {'keyboard': keyboard, 'text': 'Выбери страну:'}
+
+    keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    buttons = (telebot.types.KeyboardButton(text='{}'.format(i)) for i in ('Россия', 'Назад'))
+    keyboard.add(*buttons)
+
+    KEYBOARDS['Новости'] = {'keyboard': keyboard, 'text': 'Выбери страну:'}
 
 
 def create_bot():
@@ -73,7 +79,7 @@ def start(message):
         user = USER(message.chat.id, message.text)
         DB.session.add(user)
         DB.session.commit()
-        BOT.send_message(message.chat.id, 'Hello, ' + message.chat.first_name)
+        BOT.send_message(message.chat.id, 'Привет, ' + message.chat.first_name)
     else:
         user = USER.query.filter_by(user_id=message.chat.id).first()
         user.state = message.text
@@ -81,6 +87,18 @@ def start(message):
 
     BOT.send_message(message.chat.id, KEYBOARDS[message.text]['text'],
                      reply_markup=KEYBOARDS[message.text]['keyboard'])
+
+
+class News:
+
+    @staticmethod
+    @BOT.message_handler(regexp='Новости')
+    def news(message):
+        if check_state(message):
+            BOT.send_message(message.chat.id, KEYBOARDS[message.text]['text'],
+                             reply_markup=KEYBOARDS[message.text]['keyboard'])
+        else:
+            BOT.send_message(message.chat.id, 'Неверная команда')
 
 
 class Weather:
@@ -161,10 +179,13 @@ class Rate:
     @staticmethod
     @BOT.message_handler(regexp='Беларусь|Россия')
     def route_country(message):
-        if message.text == 'Беларусь':
-            BOT.send_message(message.chat.id, Rate.get_belarusian_rate())
-        elif message.text == 'Россия':
-            BOT.send_message(message.chat.id, Rate.get_russian_rate())
+        if check_state(message):
+            if message.text == 'Беларусь':
+                BOT.send_message(message.chat.id, Rate.get_belarusian_rate())
+            elif message.text == 'Россия':
+                BOT.send_message(message.chat.id, Rate.get_russian_rate())
+        else:
+            BOT.send_message(message.chat.id, 'Неверная команда')
 
 
 @BOT.message_handler(regexp='Назад')
