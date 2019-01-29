@@ -98,35 +98,22 @@ class Weather:
         return weather
 
     @staticmethod
-    def get_weather_by_city(city_id):
-        # Проверка наличия в базе информации о нужном населенном пункте
-        import requests
-        s_city = "city_name"
-        city_id = 0
-        appid = "буквенно-цифровой APPID"
+    def get_weather_by_city(city):
+        """
+        :param city
+        :return: city weather
+        """
         try:
-            res = requests.get("http://api.openweathermap.org/data/2.5/find",
-                               params={'q': s_city, 'type': 'like', 'units': 'metric', 'APPID': appid})
-            data = res.json()
-            cities = ["{} ({})".format(d['name'], d['sys']['country'])
-                      for d in data['list']]
-            print("city:", cities)
-            city_id = data['list'][0]['id']
-            print('city_id=', city_id)
-        except Exception as e:
-            print("Exception (find):", e)
-        # Получение информации о текущей погоде
-        try:
-            res = requests.get("http://api.openweathermap.org/data/2.5/weather",
-                               params={'id': city_id, 'units': 'metric', 'lang': 'ru', 'APPID': appid})
-            data = res.json()
-            print("conditions:", data['weather'][0]['description'])
-            print("temp:", data['main']['temp'])
-            print("temp_min:", data['main']['temp_min'])
-            print("temp_max:", data['main']['temp_max'])
-        except Exception as e:
-            print("Exception (weather):", e)
-
+            response = json.loads(requests.get(f'https://api.openweathermap.org/data/2.5/weather?q={city}'
+                                               f'&APPID={data.WEATHER_API_KEY}&units=metric'
+                                               ).text)
+            weather = {'temp': response['main']['temp'],
+                       'wind': response['wind']['speed'],
+                       'clouds': response['clouds']['all'],
+                       }
+            return weather
+        except KeyError:
+            return
 
     @staticmethod
     @BOT.message_handler(regexp='Погода')
