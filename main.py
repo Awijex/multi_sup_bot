@@ -2,6 +2,8 @@ import json
 import telebot
 import requests
 import xmltodict
+import time
+from collections import namedtuple
 from flask import Flask, request
 from flask_sslify import SSLify
 from core.models import create_database
@@ -18,16 +20,15 @@ KEYBOARDS = {}
 def check_state(message):
     user = USER.query.filter_by(user_id=message.chat.id).first()
     if message.text in states[user.state]:
-        print(user.state)
-        user.state = states[user.state][message.text]
+        user.state = states[user.state][message.text] if states[user.state][message.text] in states else user.state
         DB.session.commit()
-        return True
+        return user.state
     return False
 
 
 def create_buttons():
     keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    buttons = (telebot.types.KeyboardButton(text='{}'.format(i)) for i in ('Погода', 'Курс валют'))
+    buttons = (telebot.types.KeyboardButton(text='{}'.format(i)) for i in ('Погода', 'Курс валют', 'Новости'))
     keyboard.add(*buttons)
 
     KEYBOARDS['/start'] = {'keyboard': keyboard, 'text': 'Вот что я могу:'}
@@ -45,12 +46,26 @@ def create_buttons():
 
     KEYBOARDS['Курс валют'] = {'keyboard': keyboard, 'text': 'Выбери страну:'}
 
+    keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    buttons = (telebot.types.KeyboardButton(text='{}'.format(i)) for i in ('Топ 10', 'Назад'))
+    keyboard.add(*buttons)
+
+    KEYBOARDS['Новости'] = {'keyboard': keyboard, 'text': 'Что ты хочешь посмотреть?'}
+
 
 def create_bot():
     bot = telebot.TeleBot(token=data.TOKEN, threaded=False)
     bot.remove_webhook()
     bot.set_webhook(url='/'.join((data.URL, data.TOKEN)))
     return bot
+
+
+def short_url(url):
+    response = json.loads(requests.post('https://to.click/api/v1/links',
+                                        json={'data': {'type': 'link', 'attributes': {'web_url': url}}},
+                                        headers={'X-AUTH-TOKEN': 'L1VwmEW3pniG3LSFDV3Z4yPc',
+                                                 'Content-Type': 'application/json'}).text)
+    return response['data']['attributes']['full_url']
 
 
 BOT = create_bot()
@@ -73,7 +88,7 @@ def start(message):
         user = USER(message.chat.id, message.text)
         DB.session.add(user)
         DB.session.commit()
-        BOT.send_message(message.chat.id, 'Hello, ' + message.chat.first_name)
+        BOT.send_message(message.chat.id, 'Привет, ' + message.chat.first_name)
     else:
         user = USER.query.filter_by(user_id=message.chat.id).first()
         user.state = message.text
@@ -81,6 +96,34 @@ def start(message):
 
     BOT.send_message(message.chat.id, KEYBOARDS[message.text]['text'],
                      reply_markup=KEYBOARDS[message.text]['keyboard'])
+
+
+class News:
+
+    @staticmethod
+    @BOT.message_handler(regexp='Новости')
+    def news(message):
+        if check_state(message):
+            BOT.send_message(message.chat.id, KEYBOARDS[message.text]['text'],
+                             reply_markup=KEYBOARDS[message.text]['keyboard'])
+        else:
+            BOT.send_message(message.chat.id, 'Неверная команда')
+
+    @staticmethod
+    @BOT.message_handler(regexp='Топ 10')
+    def top_news(message):
+        if check_state(message):
+            for url, title in News.get_top_news():
+                BOT.send_message(message.chat.id, f'<b>{title}</b>\nhttps://t.me/iv?url={url}&rhash=49c3eabf2e6215',
+                                 parse_mode='html')
+                time.sleep(0.5)
+
+    @staticmethod
+    def get_top_news():
+        news = json.loads(requests.get(f'https://newsapi.org/v2/top-headlines?sources=lenta&'
+                          f'apiKey={data.NEWS_API_KEY}').text)
+        tpl = namedtuple('News', ['url', 'title'])
+        return [tpl(url=i['url'], title=i['title']) for i in news['articles']]
 
 
 class Weather:
@@ -94,7 +137,7 @@ class Weather:
         weather = {'temp': response['main']['temp'],
                    'wind': response['wind']['speed'],
                    'clouds': response['clouds']['all'],
-                  }
+                   }
         return weather
 
     @staticmethod
@@ -172,13 +215,17 @@ class Rate:
         else:
             BOT.send_message(message.chat.id, 'Неверная команда')
 
-    @staticmethod
-    @BOT.message_handler(regexp='Беларусь|Россия')
-    def route_country(message):
+
+@BOT.message_handler(regexp='Беларусь|Россия')
+def route_country(message):
+    state = check_state(message)
+    if state == 'Курс валют':
         if message.text == 'Беларусь':
             BOT.send_message(message.chat.id, Rate.get_belarusian_rate())
         elif message.text == 'Россия':
             BOT.send_message(message.chat.id, Rate.get_russian_rate())
+    else:
+        BOT.send_message(message.chat.id, 'Неверная команда')
 
 
 @BOT.message_handler(regexp='Назад')

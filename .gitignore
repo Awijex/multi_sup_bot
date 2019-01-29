@@ -111,3 +111,4 @@ token
 url
 database.sqlite
 weather_api_key
+news_api_key
